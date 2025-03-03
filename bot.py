@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Line Chatbot for Penguin Prediction is Running."
+    return "Line Chatbot for Employee Status Prediction is Running."
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -40,7 +40,7 @@ def handle_message(event):
 
     if user_input in ["help", "ช่วยเหลือ", "วิธีใช้", "สอบถาม"]:
         reply_text = (
-            "🔹 วิธีใช้ระบบพยากรณ์เบาหวาน\n"
+            "🔹 วิธีใช้ระบบพยากรณ์ผล\n"
             "1️⃣ พิมพ์ 'Prediction' เพื่อเริ่มต้น\n"
             "2️⃣ บอทจะถามค่าที่ต้องกรอกทีละข้อ\n"
             "3️⃣ ตอบค่าต่างๆ ตามที่ระบบขอ\n"
@@ -53,31 +53,12 @@ def handle_message(event):
 
     if user_input in ["prediction", "พยากรณ์", "ทำนาย", "predict", "predictions"]:
         user_sessions[user_id] = {"step": 1, "data": {}}
-        reply_text = "กรุณากรอกค่า Glucose (mg/dL) เช่น 120"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        return
-
-    if user_input in ["ถูกต้อง", "ยืนยันข้อมูล"]:
-        if user_id not in user_sessions or "data" not in user_sessions[user_id]:
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="ไม่พบข้อมูล กรุณาเริ่มใหม่"))
-            return
-
-        user_data = user_sessions[user_id]["data"]
-
-        response = requests.post(PREDICTION_API_URL, json=user_data)
-        result = response.json()
-
-        if "prediction" in result:
-            reply_text = f"ผลลัพธ์: {result['prediction']}"
-        else:
-            reply_text = f"Error: {result.get('error', 'ไม่สามารถพยากรณ์ได้')}"
-
-        del user_sessions[user_id]  
+        reply_text = "กรุณากรอกค่า Age (อายุ) เช่น 30"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
     if user_input == "ยกเลิก":
-        del user_sessions[user_id]  
+        del user_sessions[user_id]
         reply_text = "ข้อมูลถูกยกเลิก กรุณาเริ่มใหม่"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
@@ -87,138 +68,40 @@ def handle_message(event):
         step = session["step"]
 
         try:
-            if step in [1, 2, 3]:  
-                if not re.match(r'^\d+(\.\d+)?$', user_input):
-                    reply_text = "กรุณากรอกเฉพาะค่าตัวเลขที่เป็นบวก เช่น 120"
-                    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-                    return
+            if step == 1:
+                session["data"]["age"] = int(user_input)
+                reply_text = "กรุณากรอกค่า Length of Service (ระยะเวลาทำงาน) เช่น 5"
+            elif step == 2:
+                session["data"]["length_of_service"] = int(user_input)
+                reply_text = "กรุณากรอกค่า Salary (เงินเดือน) เช่น 30000"
+            elif step == 3:
+                session["data"]["salary"] = float(user_input)
+                reply_text = "กรุณากรอกค่า Gender (เพศ) เช่น 0 (ชาย) หรือ 1 (หญิง)"
+            elif step == 4:
+                session["data"]["gender"] = int(user_input)
+                reply_text = "กรุณากรอกค่า Marital Status (สถานะสมรส) เช่น 0 (โสด) หรือ 1 (แต่งงานแล้ว)"
+            elif step == 5:
+                session["data"]["marital_status"] = int(user_input)
 
-                value = float(user_input)
+                # ส่งข้อมูลไปยัง API สำหรับทำนายผล
+                response = requests.post(PREDICTION_API_URL, json=session["data"])
+                result = response.json()
 
-                if step == 1:
-                    session["data"]["Glucose"] = value
-                    reply_text = "กรุณากรอกค่า Insulin (μU/mL) เช่น 80"
-                elif step == 2:
-                    session["data"]["Insulin"] = value
-                    reply_text = "กรุณากรอกค่า BMI เช่น 25.5"
-                elif step == 3:
-                    session["data"]["BMI"] = value
-                    summary_flex = create_summary_flex(session["data"])
-                    line_bot_api.reply_message(event.reply_token, summary_flex)
-                    return
+                if "prediction" in result:
+                    reply_text = f"ผลลัพธ์: {result['prediction']}"
+                else:
+                    reply_text = f"Error: {result.get('error', 'ไม่สามารถพยากรณ์ได้')}"
+                
+                # ลบเซสชั่นหลังจากส่งผลลัพธ์แล้ว
+                del user_sessions[user_id]
 
-                session["step"] += 1
+            session["step"] += 1
         
         except ValueError:
             reply_text = "กรุณากรอกค่าตัวเลขที่ถูกต้อง"
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-            return
-
+        
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
-
-
-def create_summary_flex(user_data):
-    flex_message = {
-        "type": "bubble",
-        "size": "mega",
-        "body": {
-            "type": "box",
-            "layout": "vertical",
-            "backgroundColor": "#E3F2FD", 
-            "cornerRadius": "md",
-            "paddingAll": "lg",
-            "contents": [
-                {
-                    "type": "text",
-                    "text": "ข้อมูลของคุณ",
-                    "weight": "bold",
-                    "size": "xl",
-                    "color": "#1976D2",  
-                    "align": "center"
-                },
-                {
-                    "type": "separator",
-                    "margin": "sm",
-                    "color": "#B0BEC5"
-                },
-                {
-                    "type": "box",
-                    "layout": "vertical",
-                    "margin": "sm",
-                    "spacing": "xs",
-                    "contents": [
-                        {
-                            "type": "text",
-                            "text": f"Bill Length: {user_data['Glucose']} mm",
-                            "size": "md",
-                            "color": "#37474F"
-                        },
-                        {
-                            "type": "text",
-                            "text": f"Bill Length: {user_data['Insulin']} mm",
-                            "size": "md",
-                            "color": "#37474F"
-                        },
-                        {
-                            "type": "text",
-                            "text": f"Bill Length: {user_data['BMI']} mm",
-                            "size": "md",
-                            "color": "#37474F"
-                        },
-                    ]
-                },
-                {
-                    "type": "separator",
-                    "margin": "sm",
-                    "color": "#B0BEC5"
-                },
-                {
-                    "type": "text",
-                    "text": "ข้อมูลของคุณถูกต้องหรือไม่?",
-                    "margin": "sm",
-                    "size": "md",
-                    "color": "#1976D2",
-                    "align": "center",
-                    "weight": "bold"
-                }
-            ]
-        },
-        "footer": {
-            "type": "box",
-            "layout": "vertical",
-            "backgroundColor": "#BBDEFB",  
-            "cornerRadius": "md",
-            "paddingAll": "sm",
-            "contents": [
-                {
-                    "type": "button",
-                    "style": "primary",
-                    "color": "#42A5F5",
-                    "action": {
-                        "type": "message",
-                        "label": "ถูกต้อง",
-                        "text": "ยืนยันข้อมูล"
-                    },
-                    "height": "sm",
-                    "margin": "none"
-                },
-                {
-                    "type": "button",
-                    "style": "secondary",
-                    "color": "#90A4AE",
-                    "action": {
-                        "type": "message",
-                        "label": "ยกเลิก",
-                        "text": "ยกเลิก"
-                    },
-                    "height": "sm",
-                    "margin": "md"
-                }
-            ]
-        }
-    }
-    return FlexSendMessage(alt_text="สรุปข้อมูลของคุณ", contents=flex_message)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
