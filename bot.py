@@ -41,7 +41,7 @@ def handle_message(event):
     if user_input in ["help", "ช่วยเหลือ", "วิธีใช้", "สอบถาม"]:
         reply_text = (
             "🔹 วิธีใช้ระบบพยากรณ์ผล\n"
-            "1️⃣ พิมพ์ 'Prediction' เพื่อเริ่มต้น\n"
+            "1️⃣ พิมพ์ 'Prediction' หรือ 'ทำนาย' เพื่อเริ่มต้น\n"
             "2️⃣ บอทจะถามค่าที่ต้องกรอกทีละข้อ\n"
             "3️⃣ ตอบค่าต่างๆ ตามที่ระบบขอ\n"
             "4️⃣ หลังจากกรอกครบ ระบบจะทำการพยากรณ์ผล\n"
@@ -51,7 +51,7 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
-    if user_input in ["prediction", "พยากรณ์", "ทำนาย", "predict", "predictions"]:
+    if user_input in ["Prediction","prediction", "พยากรณ์", "ทำนาย", "predict", "predictions"]:
         user_sessions[user_id] = {"step": 1, "data": {}}
         reply_text = "กรุณากรอกค่า Age (อายุ) เช่น 30"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
@@ -128,7 +128,7 @@ def create_summary_flex(user_data):
         "body": {
             "type": "box",
             "layout": "vertical",
-            "backgroundColor": "#E3F2FD", 
+            "backgroundColor": "#F5EDED", 
             "cornerRadius": "md",
             "paddingAll": "lg",
             "contents": [
@@ -137,7 +137,7 @@ def create_summary_flex(user_data):
                     "text": "ข้อมูลของคุณ",
                     "weight": "bold",
                     "size": "xl",
-                    "color": "#1976D2",  
+                    "color": "#222831",  
                     "align": "center"
                 },
                 {
@@ -193,7 +193,7 @@ def create_summary_flex(user_data):
                     "text": "ข้อมูลของคุณถูกต้องหรือไม่?",
                     "margin": "sm",
                     "size": "md",
-                    "color": "#1976D2",
+                    "color": "#222831",
                     "align": "center",
                     "weight": "bold"
                 }
