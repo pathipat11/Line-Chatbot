@@ -38,46 +38,47 @@ def handle_message(event):
     user_id = event.source.user_id
     user_input = event.message.text.strip()
 
-    if user_input.lower() in ["help", "ช่วยเหลือ", "วิธีใช้", "สอบถาม"]:
+    if user_input in ["help", "ช่วยเหลือ", "วิธีใช้", "สอบถาม"]:
         reply_text = (
             "🔹 วิธีใช้ระบบพยากรณ์ผล\n"
             "1️⃣ พิมพ์ 'Prediction' หรือ 'ทำนาย' เพื่อเริ่มต้น\n"
-            "2️⃣ กรอกค่าตามที่ระบบถาม\n"
-            "3️⃣ กด 'ยืนยันข้อมูล' เมื่อกรอกครบ\n"
+            "2️⃣ บอทจะถามค่าที่ต้องกรอกทีละข้อ\n"
+            "3️⃣ ตอบค่าต่างๆ ตามที่ระบบขอ\n"
+            "4️⃣ หลังจากกรอกครบ ระบบจะทำการพยากรณ์ผล\n"
             "🔸 หากต้องการเริ่มใหม่ ให้พิมพ์ 'ยกเลิก'"
         )
+        
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
-    if user_input.lower() in ["prediction", "พยากรณ์", "ทำนาย"]:
+    if user_input in ["Prediction","prediction", "พยากรณ์", "ทำนาย", "predict", "predictions"]:
         user_sessions[user_id] = {"step": 1, "data": {}}
         reply_text = "กรุณากรอกค่า Age (อายุ) เช่น 30"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
     if user_input == "ยกเลิก":
-        user_sessions.pop(user_id, None)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="ข้อมูลถูกยกเลิก กรุณาเริ่มใหม่"))
+        del user_sessions[user_id]
+        reply_text = "ข้อมูลถูกยกเลิก กรุณาเริ่มใหม่"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
     if user_input == "ยืนยันข้อมูล":
-        user_data = user_sessions.get(user_id, {}).get("data")
-        
-        if not user_data:
+        if user_id not in user_sessions or "data" not in user_sessions[user_id]:
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="ไม่พบข้อมูล กรุณาเริ่มใหม่"))
             return
 
-        try:
-            response = requests.post(PREDICTION_API_URL, json=user_data)
-            if response.status_code == 200:
-                result = response.json()
-                reply_text = f"ผลลัพธ์: {result.get('prediction', 'ไม่สามารถพยากรณ์ได้')}"
-            else:
-                reply_text = f"เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (Status Code: {response.status_code})"
-        except requests.exceptions.RequestException as e:
-            reply_text = f"ไม่สามารถเชื่อมต่อ API ได้: {str(e)}"
+        user_data = user_sessions[user_id]["data"]
 
-        user_sessions.pop(user_id, None)
+        response = requests.post(PREDICTION_API_URL, json=user_data)
+        result = response.json()
+
+        if "prediction" in result:
+            reply_text = f"ผลลัพธ์: {result['prediction']}"
+        else:
+            reply_text = f"Error: {result.get('error', 'ไม่สามารถพยากรณ์ได้')}"
+
+        del user_sessions[user_id]  
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
@@ -107,12 +108,13 @@ def handle_message(event):
                     raise ValueError
                 session["data"]["marital_status"] = marital_status
 
+                # แสดงข้อมูลที่กรอกทั้งหมดก่อนให้ยืนยัน
                 summary_flex = create_summary_flex(session["data"])
                 line_bot_api.reply_message(event.reply_token, summary_flex)
                 return
 
             session["step"] += 1
-
+        
         except ValueError:
             reply_text = "กรุณากรอกค่าตัวเลขที่ถูกต้อง"
         
@@ -126,28 +128,100 @@ def create_summary_flex(user_data):
         "body": {
             "type": "box",
             "layout": "vertical",
+            "backgroundColor": "#FFFFFF", 
+            "cornerRadius": "md",
+            "paddingAll": "lg",
             "contents": [
-                {"type": "text", "text": "ข้อมูลของคุณ", "weight": "bold", "size": "xl", "align": "center"},
-                {"type": "separator", "margin": "sm"},
-                {"type": "text", "text": f"อายุ: {user_data['age']} ปี", "size": "md"},
-                {"type": "text", "text": f"ระยะเวลาทำงาน: {user_data['length_of_service']} ปี", "size": "md"},
-                {"type": "text", "text": f"เงินเดือน: {user_data['salary']} บาท", "size": "md"},
-                {"type": "text", "text": f"เพศ: {'ชาย' if user_data['gender'] == 0 else 'หญิง'}", "size": "md"},
-                {"type": "text", "text": f"สถานะสมรส: {'โสด' if user_data['marital_status'] == 0 else 'แต่งงานแล้ว'}", "size": "md"},
-                {"type": "separator", "margin": "sm"},
-                {"type": "text", "text": "ข้อมูลของคุณถูกต้องหรือไม่?", "size": "md", "align": "center", "weight": "bold"}
+                {
+                    "type": "text",
+                    "text": "ข้อมูลของคุณ",
+                    "weight": "bold",
+                    "size": "xl",
+                    "color": "#222831",  
+                    "align": "center"
+                },
+                {
+                    "type": "separator",
+                    "margin": "sm",
+                    "color": "#B0BEC5"
+                },
+                {
+                    "type": "box",
+                    "layout": "vertical",
+                    "margin": "sm",
+                    "spacing": "xs",
+                    "contents": [
+                        {
+                            "type": "text",
+                            "text": f"อายุ: {user_data['age']} ปี",
+                            "size": "md",
+                            "color": "#37474F"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"ระยะเวลาทำงาน: {user_data['length_of_service']} ปี",
+                            "size": "md",
+                            "color": "#37474F"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"เงินเดือน: {user_data['salary']} บาท",
+                            "size": "md",
+                            "color": "#37474F"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"เพศ: {'ชาย' if user_data['gender'] == 0 else 'หญิง'}",
+                            "size": "md",
+                            "color": "#37474F"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"สถานะสมรส: {'โสด' if user_data['marital_status'] == 0 else 'แต่งงานแล้ว'}",
+                            "size": "md",
+                            "color": "#37474F"
+                        }
+                    ]
+                },
+                {
+                    "type": "separator",
+                    "margin": "sm",
+                    "color": "#B0BEC5"
+                },
+                {
+                    "type": "text",
+                    "text": "ข้อมูลของคุณถูกต้องหรือไม่?",
+                    "margin": "sm",
+                    "size": "md",
+                    "color": "#222831",
+                    "align": "center",
+                    "weight": "bold"
+                }
             ]
         },
         "footer": {
             "type": "box",
             "layout": "vertical",
             "contents": [
-                {"type": "button", "style": "primary", "action": {"type": "message", "label": "ยืนยันข้อมูล", "text": "ยืนยันข้อมูล"}},
-                {"type": "button", "style": "secondary", "action": {"type": "message", "label": "ยกเลิก", "text": "ยกเลิก"}}
+                {
+                    "type": "button",
+                    "style": "primary",
+                    "action": {
+                        "type": "message",
+                        "label": "ยืนยันข้อมูล",
+                        "text": "ยืนยันข้อมูล"
+                    }
+                },
+                {
+                    "type": "button",
+                    "style": "secondary",
+                    "action": {
+                        "type": "message",
+                        "label": "ยกเลิก",
+                        "text": "ยกเลิก"
+                    }
+                }
             ]
         }
     }
     return FlexSendMessage(alt_text="สรุปข้อมูลของคุณ", contents=flex_message)
-
-if __name__ == "__main__":
-    app.run(debug=True)
