@@ -70,17 +70,25 @@ def handle_message(event):
 
         user_data = user_sessions[user_id]["data"]
 
-        response = requests.post(PREDICTION_API_URL, json=user_data)
-        result = response.json()
+        print(f"Sending data to API: {user_data}")
 
-        if "prediction" in result:
-            reply_text = f"ผลลัพธ์: {result['prediction']}"
-        else:
-            reply_text = f"Error: {result.get('error', 'ไม่สามารถพยากรณ์ได้')}"
+        try:
+            response = requests.post(PREDICTION_API_URL, json=user_data)
+            print(f"Response status: {response.status_code}, Response text: {response.text}")
+            
+            result = response.json()
+            if isinstance(result, dict) and "prediction" in result:
+                reply_text = f"ผลลัพธ์: {result['prediction']}"
+            else:
+                reply_text = f"Error: {result.get('error', 'ไม่สามารถพยากรณ์ได้')}"
+        except Exception as e:
+            reply_text = f"เกิดข้อผิดพลาด: {str(e)}"
 
         del user_sessions[user_id]  
+        print(f"Sending reply: {reply_text}")
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
+
 
     if user_id in user_sessions:
         session = user_sessions[user_id]
