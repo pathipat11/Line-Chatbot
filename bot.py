@@ -8,6 +8,9 @@ import requests
 LINE_CHANNEL_ACCESS_TOKEN = "Ea4Fo1WAIUnKbPl18U7ZG9UM5P98DSt0F74h4yAxjid9GclP1rl1rAnZ7Hh+Nbq2zPifb+HOKhscyVo4YVYUKr3D09ycpcq16UUxvAp+4E0Twwj+JTBUNe8dE8kEjDYy6J1bS5Z9JW64xQyQvkMrCAdB04t89/1O/w1cDnyilFU="
 LINE_CHANNEL_SECRET = "38ef76e8fd8dc498b03c3e1484e8eefe"
 
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
+
 PREDICTION_API_URL = "https://bot-restful-api.onrender.com/predict"
 
 user_sessions = {}
@@ -34,6 +37,19 @@ def callback():
 def handle_message(event):
     user_id = event.source.user_id
     user_input = event.message.text.strip()
+
+    if user_input in ["help", "ช่วยเหลือ", "วิธีใช้", "สอบถาม"]:
+        reply_text = (
+            "🔹 วิธีใช้ระบบพยากรณ์ผล\n"
+            "1️⃣ พิมพ์ 'Prediction' เพื่อเริ่มต้น\n"
+            "2️⃣ บอทจะถามค่าที่ต้องกรอกทีละข้อ\n"
+            "3️⃣ ตอบค่าต่างๆ ตามที่ระบบขอ\n"
+            "4️⃣ หลังจากกรอกครบ ระบบจะทำการพยากรณ์ผล\n"
+            "🔸 หากต้องการเริ่มใหม่ ให้พิมพ์ 'ยกเลิก'"
+        )
+        
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+        return
 
     if user_input in ["prediction", "พยากรณ์", "ทำนาย", "predict", "predictions"]:
         user_sessions[user_id] = {"step": 1, "data": {}}
