@@ -78,10 +78,23 @@ def handle_message(event):
                 session["data"]["salary"] = float(user_input)
                 reply_text = "กรุณากรอกค่า Gender (เพศ) เช่น 0 (ชาย) หรือ 1 (หญิง)"
             elif step == 4:
-                session["data"]["gender"] = int(user_input)
-                reply_text = "กรุณากรอกค่า Marital Status (สถานะสมรส) เช่น 0 (โสด) หรือ 1 (แต่งงานแล้ว)"
+                try:
+                    gender = int(user_input.strip())
+                    if gender not in [0, 1]:
+                        raise ValueError
+                    session["data"]["gender"] = gender
+                    reply_text = "กรุณากรอกค่า Marital Status (สถานะสมรส) เช่น 0 (โสด) หรือ 1 (แต่งงานแล้ว)"
+                except ValueError:
+                    reply_text = "กรุณากรอกค่าเพศเป็นตัวเลข 0 (ชาย) หรือ 1 (หญิง) เท่านั้น"
             elif step == 5:
-                session["data"]["marital_status"] = int(user_input)
+                try:
+                    marital_status = int(user_input.strip())
+                    if marital_status not in [0, 1]:
+                        raise ValueError
+                    session["data"]["marital_status"] = marital_status
+                except ValueError:
+                    reply_text = "กรุณากรอกค่าสถานะสมรสเป็นตัวเลข 0 (โสด) หรือ 1 (แต่งงานแล้ว) เท่านั้น"
+
 
                 # ส่งข้อมูลไปยัง API สำหรับทำนายผล
                 response = requests.post(PREDICTION_API_URL, json=session["data"])
