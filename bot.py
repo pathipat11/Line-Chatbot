@@ -58,13 +58,16 @@ def handle_message(event):
         return
 
     if user_input == "ยกเลิก":
-        del user_sessions[user_id]
+        if user_id in user_sessions:
+            del user_sessions[user_id]
         reply_text = "ข้อมูลถูกยกเลิก กรุณาเริ่มใหม่"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
+
     if user_input == "ยืนยันข้อมูล":
-        if user_id not in user_sessions or "data" not in user_sessions[user_id]:
+        if user_id in user_sessions:
+            del user_sessions[user_id]
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="ไม่พบข้อมูล กรุณาเริ่มใหม่"))
             return
 
