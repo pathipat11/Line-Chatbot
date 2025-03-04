@@ -74,18 +74,24 @@ def handle_message(event):
 
         try:
             response = requests.post(PREDICTION_API_URL, json=user_data)
-            print(f"Response status: {response.status_code}, Response text: {response.text}")
+            print(f"Response status: {response.status_code}, Response text: {response.text}")  # Debugging
             
-            result = response.json()
-            if isinstance(result, dict) and "prediction" in result:
-                reply_text = f"ผลลัพธ์: {result['prediction']}"
+            if response.status_code != 200:
+                reply_text = f"เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (Status Code: {response.status_code})"
             else:
-                reply_text = f"Error: {result.get('error', 'ไม่สามารถพยากรณ์ได้')}"
-        except Exception as e:
-            reply_text = f"เกิดข้อผิดพลาด: {str(e)}"
+                try:
+                    result = response.json()
+                    if isinstance(result, dict) and "prediction" in result:
+                        reply_text = f"ผลลัพธ์: {result['prediction']}"
+                    else:
+                        reply_text = "ไม่สามารถพยากรณ์ได้ โปรดลองใหม่อีกครั้ง"
+                except ValueError:
+                    reply_text = "เกิดข้อผิดพลาด: API ไม่ส่งข้อมูลกลับมา"
+        except requests.exceptions.RequestException as e:
+            reply_text = f"ไม่สามารถเชื่อมต่อ API ได้: {str(e)}"
 
-        del user_sessions[user_id]  
-        print(f"Sending reply: {reply_text}")
+        if user_id in user_sessions:
+            del user_sessions[user_id]  
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
