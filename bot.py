@@ -3,6 +3,7 @@ from flask import Flask, request
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import ( MessageEvent, TextMessage, TextSendMessage, QuickReply, QuickReplyButton, MessageAction, FlexSendMessage, ImageSendMessage )
+from linebot.models import QuickReply, QuickReplyButton, MessageAction
 import requests
 
 LINE_CHANNEL_ACCESS_TOKEN = "Ea4Fo1WAIUnKbPl18U7ZG9UM5P98DSt0F74h4yAxjid9GclP1rl1rAnZ7Hh+Nbq2zPifb+HOKhscyVo4YVYUKr3D09ycpcq16UUxvAp+4E0Twwj+JTBUNe8dE8kEjDYy6J1bS5Z9JW64xQyQvkMrCAdB04t89/1O/w1cDnyilFU="
@@ -103,13 +104,26 @@ def handle_message(event):
                 reply_text = "กรุณากรอกค่า Salary (เงินเดือน) เช่น 30000"
             elif step == 3:
                 session["data"]["salary"] = float(user_input)
-                reply_text = "กรุณากรอกค่า Gender (เพศ) เช่น 0 (ชาย) หรือ 1 (หญิง)"
+                reply_text = "กรุณาเลือกเพศของคุณ:"
+                quick_reply = QuickReply(items=[
+                    QuickReplyButton(action=MessageAction(label="เพศ : ชาย", text="0")),
+                    QuickReplyButton(action=MessageAction(label="เพศ : หญิง", text="1"))
+                ])
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
+                return
             elif step == 4:
                 gender = int(user_input)
                 if gender not in [0, 1]:
                     raise ValueError
                 session["data"]["gender"] = gender
-                reply_text = "กรุณากรอกค่า Marital Status (สถานะสมรส) เช่น 0 (โสด) หรือ 1 (แต่งงานแล้ว)"
+                
+                reply_text = "กรุณาเลือกสถานะสมรสของคุณ:"
+                quick_reply = QuickReply(items=[
+                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : โสด", text="0")),
+                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : แต่งงานแล้ว", text="1"))
+                ])
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
+                return
             elif step == 5:
                 marital_status = int(user_input)
                 if marital_status not in [0, 1]:
