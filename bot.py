@@ -105,8 +105,8 @@ def handle_message(event):
                 session["data"]["salary"] = float(user_input)
                 
                 quick_reply_buttons = [
-                    QuickReplyButton(action=MessageAction(label="เพศ: ชาย", text="ชาย")),
-                    QuickReplyButton(action=MessageAction(label="เพศ: หญิง", text="หญิง"))
+                    QuickReplyButton(action=MessageAction(label="เพศ: ชาย", text="0")),
+                    QuickReplyButton(action=MessageAction(label="เพศ: หญิง", text="1"))
                 ]
                 
                 line_bot_api.reply_message(event.reply_token, 
@@ -121,8 +121,8 @@ def handle_message(event):
                     session["data"]["gender"] = 0 if user_input == "ชาย" else 1
                     
                     quick_reply_buttons = [
-                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: โสด", text="โสด")),
-                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: แต่งงานแล้ว", text="แต่งงานแล้ว"))
+                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: โสด", text="0")),
+                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: แต่งงานแล้ว", text="1"))
                     ]
                     
                     line_bot_api.reply_message(event.reply_token, 
