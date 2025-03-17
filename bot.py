@@ -3,7 +3,6 @@ from flask import Flask, request
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import ( MessageEvent, TextMessage, TextSendMessage, QuickReply, QuickReplyButton, MessageAction, FlexSendMessage, ImageSendMessage )
-from linebot.models import QuickReply, QuickReplyButton, MessageAction
 import requests
 
 LINE_CHANNEL_ACCESS_TOKEN = "Ea4Fo1WAIUnKbPl18U7ZG9UM5P98DSt0F74h4yAxjid9GclP1rl1rAnZ7Hh+Nbq2zPifb+HOKhscyVo4YVYUKr3D09ycpcq16UUxvAp+4E0Twwj+JTBUNe8dE8kEjDYy6J1bS5Z9JW64xQyQvkMrCAdB04t89/1O/w1cDnyilFU="
@@ -64,33 +63,6 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
-    if user_input == "ยืนยันข้อมูล":
-        if user_id not in user_sessions or "data" not in user_sessions[user_id]:
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="ไม่พบข้อมูล กรุณาเริ่มใหม่"))
-            return
-
-        user_data = user_sessions[user_id]["data"]
-
-        print(f"Sending data to API: {user_data}")
-
-        try:
-            response = requests.post(PREDICTION_API_URL, json=user_data)
-            print(f"Response status: {response.status_code}, Response text: {response.text}")
-            
-            result = response.json()
-            if isinstance(result, dict) and "prediction" in result:
-                reply_text = f"ผลลัพธ์: {result['prediction']}"
-            else:
-                reply_text = f"Error: {result.get('error', 'ไม่สามารถพยากรณ์ได้')}"
-        except Exception as e:
-            reply_text = f"เกิดข้อผิดพลาด: {str(e)}"
-
-        del user_sessions[user_id]  
-        print(f"Sending reply: {reply_text}")
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
-        return
-
-
     if user_id in user_sessions:
         session = user_sessions[user_id]
         step = session["step"]
@@ -104,20 +76,24 @@ def handle_message(event):
                 reply_text = "กรุณากรอกค่า Salary (เงินเดือน) เช่น 30000"
             elif step == 3:
                 session["data"]["salary"] = float(user_input)
-                reply_text = "กรุณาเลือกค่า Gender (เพศ):"
-                quick_reply = QuickReply(items=[
-                    QuickReplyButton(action=MessageAction(label="เพศ: ชาย", text="0")),
-                    QuickReplyButton(action=MessageAction(label="เพศ: หญิง", text="1"))
-                ])
+                reply_text = "กรุณาเลือกเพศ"
+                quick_reply = QuickReply(
+                    items=[
+                        QuickReplyButton(action=MessageAction(label="เพศ: ชาย", text="0")),
+                        QuickReplyButton(action=MessageAction(label="เพศ: หญิง", text="1"))
+                    ]
+                )
                 line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
                 return
             elif step == 4:
                 session["data"]["gender"] = int(user_input)
-                reply_text = "กรุณาเลือกค่า Marital Status (สถานะสมรส):"
-                quick_reply = QuickReply(items=[
-                    QuickReplyButton(action=MessageAction(label="สถานะสมรส: โสด", text="0")),
-                    QuickReplyButton(action=MessageAction(label="สถานะสมรส: แต่งงานแล้ว", text="1"))
-                ])
+                reply_text = "กรุณาเลือกสถานะสมรส"
+                quick_reply = QuickReply(
+                    items=[
+                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: โสด", text="0")),
+                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: แต่งงานแล้ว", text="1"))
+                    ]
+                )
                 line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
                 return
             elif step == 5:
@@ -129,7 +105,7 @@ def handle_message(event):
             session["step"] += 1
         
         except ValueError:
-            reply_text = "กรุณากรอกค่าตัวเลขที่ถูกต้อง"
+            reply_text = "กรุณากรอกค่าที่ถูกต้อง"
         
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
@@ -141,100 +117,21 @@ def create_summary_flex(user_data):
         "body": {
             "type": "box",
             "layout": "vertical",
-            "backgroundColor": "#FFFFFF", 
-            "cornerRadius": "md",
-            "paddingAll": "lg",
             "contents": [
-                {
-                    "type": "text",
-                    "text": "ข้อมูลของคุณ",
-                    "weight": "bold",
-                    "size": "xl",
-                    "color": "#222831",  
-                    "align": "center"
-                },
-                {
-                    "type": "separator",
-                    "margin": "sm",
-                    "color": "#B0BEC5"
-                },
-                {
-                    "type": "box",
-                    "layout": "vertical",
-                    "margin": "sm",
-                    "spacing": "xs",
-                    "contents": [
-                        {
-                            "type": "text",
-                            "text": f"อายุ: {user_data['age']} ปี",
-                            "size": "md",
-                            "color": "#37474F"
-                        },
-                        {
-                            "type": "text",
-                            "text": f"ระยะเวลาทำงาน: {user_data['length_of_service']} ปี",
-                            "size": "md",
-                            "color": "#37474F"
-                        },
-                        {
-                            "type": "text",
-                            "text": f"เงินเดือน: {user_data['salary']} บาท",
-                            "size": "md",
-                            "color": "#37474F"
-                        },
-                        {
-                            "type": "text",
-                            "text": f"เพศ: {'ชาย' if user_data['gender'] == 0 else 'หญิง'}",
-                            "size": "md",
-                            "color": "#37474F"
-                        },
-                        {
-                            "type": "text",
-                            "text": f"สถานะสมรส: {'โสด' if user_data['marital_status'] == 0 else 'แต่งงานแล้ว'}",
-                            "size": "md",
-                            "color": "#37474F"
-                        }
-                    ]
-                },
-                {
-                    "type": "separator",
-                    "margin": "sm",
-                    "color": "#B0BEC5"
-                },
-                {
-                    "type": "text",
-                    "text": "ข้อมูลของคุณถูกต้องหรือไม่?",
-                    "margin": "sm",
-                    "size": "md",
-                    "color": "#222831",
-                    "align": "center",
-                    "weight": "bold"
-                }
+                {"type": "text", "text": "ข้อมูลของคุณ", "weight": "bold", "size": "xl", "align": "center"},
+                {"type": "text", "text": f"อายุ: {user_data['age']} ปี", "size": "md"},
+                {"type": "text", "text": f"เพศ: {'ชาย' if user_data['gender'] == 0 else 'หญิง'}", "size": "md"},
+                {"type": "text", "text": f"สถานะสมรส: {'โสด' if user_data['marital_status'] == 0 else 'แต่งงานแล้ว'}", "size": "md"}
             ]
         },
         "footer": {
             "type": "box",
             "layout": "vertical",
             "contents": [
-                {
-                    "type": "button",
-                    "style": "primary",
-                    "action": {
-                        "type": "message",
-                        "label": "ยืนยันข้อมูล",
-                        "text": "ยืนยันข้อมูล"
-                    }
-                },
-                {
-                    "type": "button",
-                    "style": "secondary",
-                    "action": {
-                        "type": "message",
-                        "label": "ยกเลิก",
-                        "text": "ยกเลิก"
-                    }
-                }
+                {"type": "button", "style": "primary", "action": {"type": "message", "label": "ยืนยันข้อมูล", "text": "ยืนยันข้อมูล"}},
+                {"type": "button", "style": "secondary", "action": {"type": "message", "label": "ยกเลิก", "text": "ยกเลิก"}}
             ]
         }
     }
     return FlexSendMessage(alt_text="สรุปข้อมูลของคุณ", contents=flex_message)
+
