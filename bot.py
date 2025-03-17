@@ -3,7 +3,6 @@ from flask import Flask, request
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import ( MessageEvent, TextMessage, TextSendMessage, QuickReply, QuickReplyButton, MessageAction, FlexSendMessage, ImageSendMessage )
-from linebot.models import QuickReply, QuickReplyButton, MessageAction
 import requests
 
 LINE_CHANNEL_ACCESS_TOKEN = "Ea4Fo1WAIUnKbPl18U7ZG9UM5P98DSt0F74h4yAxjid9GclP1rl1rAnZ7Hh+Nbq2zPifb+HOKhscyVo4YVYUKr3D09ycpcq16UUxvAp+4E0Twwj+JTBUNe8dE8kEjDYy6J1bS5Z9JW64xQyQvkMrCAdB04t89/1O/w1cDnyilFU="
@@ -104,31 +103,39 @@ def handle_message(event):
                 reply_text = "กรุณากรอกค่า Salary (เงินเดือน) เช่น 30000"
             elif step == 3:
                 session["data"]["salary"] = float(user_input)
-                reply_text = "กรุณาเลือกเพศของคุณ:"
-                quick_reply = QuickReply(items=[
-                    QuickReplyButton(action=MessageAction(label="เพศ : ชาย", text="0")),
-                    QuickReplyButton(action=MessageAction(label="เพศ : หญิง", text="1"))
-                ])
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
+                
+                quick_reply_buttons = [
+                    QuickReplyButton(action=MessageAction(label="เพศ: ชาย", text="ชาย")),
+                    QuickReplyButton(action=MessageAction(label="เพศ: หญิง", text="หญิง"))
+                ]
+                
+                line_bot_api.reply_message(event.reply_token, 
+                    TextSendMessage(text="กรุณาเลือกเพศ", 
+                                    quick_reply=QuickReply(items=quick_reply_buttons)))
                 return
+
             elif step == 4:
-                gender = int(user_input)
-                if gender not in [0, 1]:
-                    raise ValueError
-                session["data"]["gender"] = gender
-                session["step"] += 1
-                reply_text = "กรุณาเลือกสถานะสมรสของคุณ:"
-                quick_reply = QuickReply(items=[
-                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : โสด", text="0")),
-                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : แต่งงานแล้ว", text="1"))
-                ])
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
-                return
+                if user_input not in ["ชาย", "หญิง"]:
+                    reply_text = "กรุณาเลือกเพศจากตัวเลือกด้านบน"
+                else:
+                    session["data"]["gender"] = 0 if user_input == "ชาย" else 1
+                    
+                    quick_reply_buttons = [
+                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: โสด", text="โสด")),
+                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: แต่งงานแล้ว", text="แต่งงานแล้ว"))
+                    ]
+                    
+                    line_bot_api.reply_message(event.reply_token, 
+                        TextSendMessage(text="กรุณาเลือกสถานะสมรส", 
+                                        quick_reply=QuickReply(items=quick_reply_buttons)))
+                    return
+
             elif step == 5:
-                marital_status = int(user_input)
-                if marital_status not in [0, 1]:
-                    raise ValueError
-                session["data"]["marital_status"] = marital_status
+                if user_input not in ["โสด", "แต่งงานแล้ว"]:
+                    reply_text = "กรุณาเลือกสถานะสมรสจากตัวเลือกด้านบน"
+                else:
+                    session["data"]["marital_status"] = 0 if user_input == "โสด" else 1
+
 
                 # แสดงข้อมูลที่กรอกทั้งหมดก่อนให้ยืนยัน
                 summary_flex = create_summary_flex(session["data"])
