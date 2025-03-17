@@ -47,18 +47,17 @@ def handle_message(event):
             "4️⃣ หลังจากกรอกครบ ระบบจะทำการพยากรณ์ผล\n"
             "🔸 หากต้องการเริ่มใหม่ ให้พิมพ์ 'ยกเลิก'"
         )
-        
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
-    if user_input in ["Prediction","prediction", "พยากรณ์", "ทำนาย", "predict", "predictions"]:
+    if user_input in ["Prediction", "prediction", "พยากรณ์", "ทำนาย", "predict", "predictions"]:
         user_sessions[user_id] = {"step": 1, "data": {}}
         reply_text = "กรุณากรอกค่า Age (อายุ) เช่น 30"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
 
     if user_input == "ยกเลิก":
-        del user_sessions[user_id]
+        user_sessions.pop(user_id, None)
         reply_text = "ข้อมูลถูกยกเลิก กรุณาเริ่มใหม่"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
@@ -76,39 +75,46 @@ def handle_message(event):
                 reply_text = "กรุณากรอกค่า Salary (เงินเดือน) เช่น 30000"
             elif step == 3:
                 session["data"]["salary"] = float(user_input)
-                reply_text = "กรุณาเลือกเพศ"
-                quick_reply = QuickReply(
-                    items=[
-                        QuickReplyButton(action=MessageAction(label="เพศ: ชาย", text="0")),
-                        QuickReplyButton(action=MessageAction(label="เพศ: หญิง", text="1"))
-                    ]
-                )
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
+                
+                # เปลี่ยนเป็น Quick Reply สำหรับการเลือกเพศ
+                quick_reply = QuickReply(items=[
+                    QuickReplyButton(action=MessageAction(label="เพศ : ชาย", text="เพศ : ชาย")),
+                    QuickReplyButton(action=MessageAction(label="เพศ : หญิง", text="เพศ : หญิง"))
+                ])
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="กรุณาเลือกเพศ", quick_reply=quick_reply))
+                session["step"] += 1
                 return
             elif step == 4:
-                session["data"]["gender"] = int(user_input)
-                reply_text = "กรุณาเลือกสถานะสมรส"
-                quick_reply = QuickReply(
-                    items=[
-                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: โสด", text="0")),
-                        QuickReplyButton(action=MessageAction(label="สถานะสมรส: แต่งงานแล้ว", text="1"))
-                    ]
-                )
-                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
+                if user_input not in ["เพศ : ชาย", "เพศ : หญิง"]:
+                    raise ValueError("เลือกค่าที่ถูกต้อง")
+                session["data"]["gender"] = 0 if user_input == "เพศ : ชาย" else 1
+
+                # เปลี่ยนเป็น Quick Reply สำหรับสถานะสมรส
+                quick_reply = QuickReply(items=[
+                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : โสด", text="สถานะสมรส : โสด")),
+                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : แต่งงานแล้ว", text="สถานะสมรส : แต่งงานแล้ว"))
+                ])
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="กรุณาเลือกสถานะสมรส", quick_reply=quick_reply))
+                session["step"] += 1
                 return
             elif step == 5:
-                session["data"]["marital_status"] = int(user_input)
+                if user_input not in ["สถานะสมรส : โสด", "สถานะสมรส : แต่งงานแล้ว"]:
+                    raise ValueError("เลือกค่าที่ถูกต้อง")
+                session["data"]["marital_status"] = 0 if user_input == "สถานะสมรส : โสด" else 1
+
+                # แสดงข้อมูลที่กรอกทั้งหมดก่อนให้ยืนยัน
                 summary_flex = create_summary_flex(session["data"])
                 line_bot_api.reply_message(event.reply_token, summary_flex)
                 return
 
             session["step"] += 1
         
-        except ValueError:
-            reply_text = "กรุณากรอกค่าที่ถูกต้อง"
-        
+        except ValueError as e:
+            reply_text = f"⚠️ {str(e)} กรุณากรอกค่าที่ถูกต้อง"
+
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
         return
+
 
 def create_summary_flex(user_data):
     flex_message = {
