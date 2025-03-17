@@ -78,8 +78,8 @@ def handle_message(event):
                 
                 # เปลี่ยนเป็น Quick Reply สำหรับการเลือกเพศ
                 quick_reply = QuickReply(items=[
-                    QuickReplyButton(action=MessageAction(label="เพศ : ชาย", text="เพศ : ชาย")),
-                    QuickReplyButton(action=MessageAction(label="เพศ : หญิง", text="เพศ : หญิง"))
+                    QuickReplyButton(action=MessageAction(label="เพศ : ชาย", text="0")),
+                    QuickReplyButton(action=MessageAction(label="เพศ : หญิง", text="1"))
                 ])
                 line_bot_api.reply_message(event.reply_token, TextSendMessage(text="กรุณาเลือกเพศ", quick_reply=quick_reply))
                 session["step"] += 1
@@ -91,8 +91,8 @@ def handle_message(event):
 
                 # เปลี่ยนเป็น Quick Reply สำหรับสถานะสมรส
                 quick_reply = QuickReply(items=[
-                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : โสด", text="สถานะสมรส : โสด")),
-                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : แต่งงานแล้ว", text="สถานะสมรส : แต่งงานแล้ว"))
+                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : โสด", text="0")),
+                    QuickReplyButton(action=MessageAction(label="สถานะสมรส : แต่งงานแล้ว", text="1"))
                 ])
                 line_bot_api.reply_message(event.reply_token, TextSendMessage(text="กรุณาเลือกสถานะสมรส", quick_reply=quick_reply))
                 session["step"] += 1
