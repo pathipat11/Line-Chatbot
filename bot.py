@@ -110,17 +110,20 @@ def handle_message(event):
                     QuickReplyButton(action=MessageAction(label="เพศ : หญิง", text="1"))
                 ])
                 line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
+                return
             elif step == 4:
                 gender = int(user_input)
                 if gender not in [0, 1]:
                     raise ValueError
                 session["data"]["gender"] = gender
+                session["step"] += 1
                 reply_text = "กรุณาเลือกสถานะสมรสของคุณ:"
                 quick_reply = QuickReply(items=[
                     QuickReplyButton(action=MessageAction(label="สถานะสมรส : โสด", text="0")),
                     QuickReplyButton(action=MessageAction(label="สถานะสมรส : แต่งงานแล้ว", text="1"))
                 ])
                 line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text, quick_reply=quick_reply))
+                return
             elif step == 5:
                 marital_status = int(user_input)
                 if marital_status not in [0, 1]:
